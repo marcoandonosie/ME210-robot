@@ -1,0 +1,233 @@
+#include <Raptor.h>
+#include <SPI.h>
+
+
+#include <Metro.h>
+
+
+
+
+/*---------------Module Defines-----------------------------*/
+//define all of our values, specific timer interrupt values here 
+//PLEASE use these constants since it will make tweaking values for precise timing way easier 
+
+//the sensor constants (ultrasonic, IR detection will go here later)
+#define LIGHT_THRESHOLD         300  //around 450 in the day
+#define LINE_THRESHOLD          300   // *Choose your own thresholds*
+
+
+//the timer constants 
+#define TIME_TO_DIAGONAL       1000
+#define TIME_IN_PANTRY     2000
+
+//motor control speeds; to be tweaked alter 
+#define HALF_SPEED              50
+#define VAR_SPEED1              70
+#define VAR_SPEED2              40
+#define NO_SPEED                0
+
+
+#define TIMER_0                 0
+/*---------------Module Function Prototypes-----------------*/
+//declaring all helper functions we will later use (movement, sensing, netting etc) here 
+void checkGlobalEvents(void);
+void handleMoveForward(void);
+void handleMoveBackward(void);
+void handleLightOff(void);
+unsigned char TestForKey(void);
+void RespToKey(void);
+unsigned char TestForLightOn(void);
+void RespToLightOn(void);
+unsigned char TestForLightOff(void);
+void RespToLightOff(void);
+unsigned char TestForFence(void);
+void RespToFence(void);
+unsigned char TestTimer0Expired(void);
+void RespTimer0Expired(void);
+
+
+/*---------------State Definitions--------------------------*/
+//oh we'll have HELLA states here
+typedef enum {
+ STATE_MOVE_FORWARD, 
+ STATE_MOVE_BACKWARD, 
+ STATE_LIGHT_OFF
+} States_t;
+
+
+/*---------------Module Variables---------------------------*/
+States_t state;
+static Metro metTimer0 = Metro(LED_TIME_INTERVAL);
+static Metro metTimer1 = Metro(MOTOR_TIME_INTERVAL); //new timer for the motor; replaces the delay
+uint8_t isLEDOn;
+
+
+/*---------------Raptor Main Functions----------------*/
+
+
+void setup() {
+ // put your setup code here, to run once:
+  /* Open the serial port for communication using the Serial
+    C++ class. On the Leonardo, you must explicitly wait for
+  the class to report ready before commanding a println.
+ */
+ Serial.begin(9600);
+ while(!Serial);
+ Serial.println("Hello, world!");
+  state = STATE_MOVE_FORWARD;
+ isLEDOn = false;
+}
+
+
+void loop() {
+ //  put your main code here, to run repeatedly:
+ //Serial.println("line value is:" + String(raptor.EdgeRight()));
+ //Serial.println("light value is:" + String(raptor.LightLevel()));
+ checkGlobalEvents();
+ switch (state) {
+   case STATE_MOVE_FORWARD:
+     //Serial.println("forward state");
+     handleMoveForward();
+     break;
+   case STATE_MOVE_BACKWARD:
+   Serial.println("backward state");
+     handleMoveBackward();
+     break;
+   case STATE_LIGHT_OFF:
+     Serial.println("lurking state");
+     handleLightOff(); //delete this if I end up not needing to do this
+     break;
+   default:    // Should never get into an unhandled state
+     Serial.println("What is this I do not even...");
+ }
+}
+
+
+/*----------------Module Functions--------------------------*/
+
+
+
+
+//expected: the velocirator curves left as it moves forward to "find" an exit
+void handleMoveForward(void) {
+ raptor.LeftMtrSpeed(VAR_SPEED1);
+ raptor.RightMtrSpeed(VAR_SPEED2);
+ //changing states from move forward to move backward should be handled by detect fence in globalcheck in loop
+}
+
+
+//expected: moves straight backwards, then after 2 seconds moves forward again
+void handleMoveBackward(void) {
+ raptor.LeftMtrSpeed(-1*HALF_SPEED);
+ raptor.RightMtrSpeed(-1*HALF_SPEED);
+ if (metTimer1.check()) { //tweak this time to around 2 seconds
+   state = STATE_MOVE_FORWARD;
+ }
+}
+
+
+void handleLightOff(void) {
+ raptor.LeftMtrSpeed(NO_SPEED);
+ raptor.RightMtrSpeed(NO_SPEED);
+}
+
+
+uint8_t TestLedTimerExpired(void) {
+ return (uint8_t) metTimer0.check();
+}
+
+
+void RespLedTimerExpired(void) {
+ //turns on a blinking orange light when the the velociraptor is in the light off state
+metTimer0.reset();
+if ((isLEDOn) || state == STATE_LIGHT_OFF) {
+  isLEDOn = false;
+  raptor.RGB(RGB_OFF);
+} else {
+  isLEDOn = true;
+  raptor.RGB(RGB_ORANGE);
+}
+}
+
+
+
+
+uint8_t TestForKey(void) {
+ uint8_t KeyEventOccurred;
+ KeyEventOccurred = Serial.available();
+ return KeyEventOccurred;
+}
+
+
+void RespToKey(void) {
+ uint8_t theKey;
+ theKey = Serial.read();
+ Serial.print(theKey);
+ Serial.print(", ASCII=");
+ Serial.println(theKey, HEX);
+}
+
+
+void checkGlobalEvents(void) {
+ //acivates the response / state changes code ONCE, when the test conditions are triggered
+ if (TestLedTimerExpired()) RespLedTimerExpired();
+ if (TestForKey()) RespToKey();
+ if (TestForLightOn()) RespToLightOn(); //new addition
+ if (TestForLightOff()) RespToLightOff(); //new addition
+ if (TestForFence()) RespToFence(); //new addition
+}
+
+
+
+
+uint8_t TestForLightOn(void) {
+ //Serial.println("test for light on");
+ //checks if overhead light sensor reads above light threshold
+ return (raptor.LightLevel() > LIGHT_THRESHOLD);  //diff sensor than the ones under the car
+
+
+}
+
+
+uint8_t TestForLightOff(void) {
+ Serial.println("test for light off");
+ //checks if overhead light sensor reads below light threshold
+ return (raptor.LightLevel() < LIGHT_THRESHOLD);
+}
+
+
+uint8_t TestForFence(void) {
+ //Serial.println("test for fence");
+ //checks if any of the IR sensors are below the line threshold (at the fence)
+return ((raptor.EdgeLeft() < LINE_THRESHOLD) || (raptor.EdgeRight() < LINE_THRESHOLD) || (raptor.LineRight() < LINE_THRESHOLD) || (raptor.LineCenter() < LINE_THRESHOLD) || (raptor.LineLeft() < LINE_THRESHOLD));
+}
+
+
+//the functions below only happen ONCE, to encode state switches
+
+
+void RespToLightOn(void) {
+ //Serial.println("resp to light on");
+ //in globalcheck: if testlight on, resptolighton
+ if (state == STATE_LIGHT_OFF) { //only change states if light is off
+   state = STATE_MOVE_FORWARD; // changes carry over into main void loop
+ }
+}
+
+
+
+
+void RespToLightOff(void) {
+ Serial.println("resp to light off");
+ //including if state is alr set to no light so this process is continuous; so no if statement
+ state = STATE_LIGHT_OFF;
+}
+
+
+void RespToFence(void) {
+ //only change states to move back if currently in moving forward state
+ if (state == STATE_MOVE_FORWARD) {
+   state = STATE_MOVE_BACKWARD;
+ }
+ metTimer1.reset();
+}
