@@ -30,7 +30,7 @@
 
 //the timer constants 
 #define TIME_TO_DIAGONAL       1000
-#define TIME_IN_PANTRY     2000
+#define TIME_IN_PANTRY         2000
 
 //motor control speeds; to be tweaked alter 
 #define HALF_SPEED              50
@@ -122,3 +122,19 @@ case STATE_2:
      Serial.println("bruh we hit default");
  }
 }
+
+
+
+
+/*---------------Checking for state transitions----------------*/
+//declare all functions for state transitions below
+void checkGlobalEvents(void) {
+ //acivates the response / state changes code ONCE, when the test conditions are triggered
+ if (TestLedTimerExpired()) RespLedTimerExpired();
+ if (TestForKey()) RespToKey();
+ if (TestForLightOn()) RespToLightOn(); //new addition
+ if (TestForLightOff()) RespToLightOff(); //new addition
+ if (TestForFence()) RespToFence(); //new addition
+}
+
+//below here write down all the helper functions (trigger and response) we need to do state transitions 
