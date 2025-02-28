@@ -18,7 +18,7 @@ void ultrasonicCallback() {
   // Serial.println(duration);
   avgLast4 += duration >> 2;
   if (n == 3) {
-    avgLast4 >>= 1; // >> 2 to average, then another >> 2 for consistency.
+    avgLast4 >>= 1; // >> 2 to average, then another >> 1 for consistency.
     // Serial.print(avgLast4);
     // Serial.print(",");
     // Serial.print(last2Avgs[1]);
