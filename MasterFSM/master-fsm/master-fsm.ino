@@ -7,17 +7,27 @@
 #define TX_PIN_R 1 // TMC2209 RX (PDN)
 #define RX_PIN_L 7 // TMC2209 TX (PDN)LEFT MOTOR
 #define TX_PIN_L 8 //TMC2209 RX (PDN)
+
+// Ultrasonic pins
+#define PIN_TRIG_1 13
+#define PIN_TRIG_2 12
+#define PIN_ECHO_1 2  // MUST be an interrupt pin
+#define PIN_ECHO_2 3  // MUST be an interrupt pin
+
+// Define Stepper Motor Driver Pins
+#define STEP_PIN_R 4
+#define DIR_PIN_R 3
+#define ENABLE_PIN_R 2 
+
+#define STEP_PIN_L 9
+#define DIR_PIN_L 6
+#define ENABLE_PIN_L 10
 // *****************************
 
 #define DRIVER_ADDRESS 0b00 // Default TMC2209 address
 #define RSENSE 0.11f // R_SENSE resistor value (check your hardware)
 
-// Ultrasonic sensor functions and pin defines
-#define PIN_TRIG_1 10
-#define PIN_TRIG_2 11
-#define PIN_ECHO_1 2  // MUST be an interrupt pin
-#define PIN_ECHO_2 3  // MUST be an interrupt pin
-
+// Ultrasonic sensor functions
 void ultraEmit(int sensorNum);
 void ultraEchoCallback();
 void ultraAvgRead(int sensorNum);
@@ -37,19 +47,11 @@ TMC2209Stepper driver_L(&SERIAL_PORT_LEFT, RSENSE, DRIVER_ADDRESS);
 TMC2209Stepper driver_R(&SERIAL_PORT_RIGHT, RSENSE, DRIVER_ADDRESS);
 // *****************************
 
-// Define Stepper Motor Driver Pins
-#define STEP_PIN_R 4
-#define DIR_PIN_R 3
-#define ENABLE_PIN_R 2
-
-#define STEP_PIN_L 9
-#define DIR_PIN_L 6
-#define ENABLE_PIN_L 10
-// *****************************
-
 // Stepper Motor (Step/Dir Control)
 AccelStepper stepper_R(AccelStepper::DRIVER, STEP_PIN_R, DIR_PIN_R);
 AccelStepper stepper_L(AccelStepper::DRIVER, STEP_PIN_L, DIR_PIN_L);
+const float stepperMaxSpeed_L = -4500;
+const float stepperMaxSpeed_R = 4500;
 // *****************************
 
 void setup() {
@@ -90,9 +92,9 @@ void setup() {
 
   // Configure Stepper Motor
   stepper_L.setMaxSpeed(10000); //do not change this
-  stepper_L.setSpeed(-4500); //fastest possible speed
+  // stepper_L.setSpeed(-4500); //fastest possible speed
   stepper_R.setMaxSpeed(10000); //do not change this
-  stepper_R.setSpeed(4500); //fastest possible speed
+  // stepper_R.setSpeed(4500); //fastest possible speed
 
   Serial.println("TMC2209 Initialized. Motor should start moving...");
 }
@@ -106,8 +108,14 @@ void loop() {
   {
     while (1) {
       // Turn a little
-
+      const unsigned long smallTurnTime = 100;
+      stepper_L.setSpeed(-1*stepperMaxSpeed_L);
+      stepper_R.setSpeed(stepperMaxSpeed_R);
+      stepper_L.runSpeed();
+      delay(smallTurnTime);
       // Stop turning
+      stepper_L.setSpeed(0);
+      stepper_R.setSpeed(0);
 
       // read from sensors
       int read0 = ultraAvgRead(0);
@@ -117,6 +125,8 @@ void loop() {
       int diff = read0 - read1;
       int delta = ABS(diff);
 
+      // TODO: Determine the threshold for which the bot is
+      // roughly perpendicular to a wall.
       const int thresh = 0;
       if (delta < thresh && 30 < read0 && read0 < 35) {
         // we are perpendicular
