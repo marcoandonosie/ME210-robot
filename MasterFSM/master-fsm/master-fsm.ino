@@ -18,7 +18,8 @@
 #define ENABLE_PIN_L 10
 
 // Pin for signal from sensor arduino.
-#define ARDUINO_COMMUNICATION_PIN 11
+#define ARDUINO_COMMUNICATION_PIN_OUT 11
+#define ARDUINO_COMMUNICATION_PIN_IN  12
 // *****************************
 
 #define DRIVER_ADDRESS 0b00 // Default TMC2209 address
@@ -62,7 +63,8 @@ void setup() {
   pinMode(STEP_PIN_R, OUTPUT);
   pinMode(DIR_PIN_R, OUTPUT);
 
-  pinMode(ARDUINO_COMMUNICATION_PIN, INPUT);
+  pinMode(ARDUINO_COMMUNICATION_PIN_IN, INPUT);  
+  pinMode(ARDUINO_COMMUNICATION_PIN_OUT, OUTPUT);
 
   delay(100); // Wait for the driver to initialize
 
@@ -107,16 +109,20 @@ void loop() {
         stepper_R.runSpeed();
       }
       // Stop turning by not calling runSpeed()
-      // stepper_L.setSpeed(0);
-      // stepper_R.setSpeed(0);
-      // Wait for sensors to read.
-      const unsigned long sensorReadDelay = 200;
-      delay(sensorReadDelay);
 
+      // Tell sensors we are ready.
+      // TODO: add a short delay in the sensor arduino to ensure
+      // pulseIn is called while still reading LOW.
+      digitalWrite(ARDUINO_COMMUNICATION_PIN_OUT);
+
+      // Wait for sensors to read.
+      unsigned long duration = pulseIn(ARDUINO_COMMUNICATION_PIN_IN, HIGH);
+
+      const unsigned long shortDuration = 50; // signal that we should keep rotating
+      const unsigned long longDuration = 100; // signal that we should continue with fsm.
       // if we are in the right direction, continue with the program.
-      if (digitalRead(ARDUINO_COMMUNICATION_PIN)) {
+      if (duration >= longDuration) {
         break;
-      }
       }
     }
   }
