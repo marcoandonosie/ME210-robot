@@ -128,9 +128,22 @@ void loop() {
   }
 
   // Move forward
-
+  const unsigned long n_steps1 = 1000;
+  stepper_R.setSpeed(stepperMaxSpeed_R);
+  stepper_L.setSpeed(stepperMaxSpeed_L);
+  for (int i = 0; i < n_steps1; ++i) {
+    stepper_L.runSpeed();
+    stepper_R.runspeed();
+  }
   // Turn 90 deg clockwise
-
+  const unsigned long n_steps2 = 100;
+  // TODO: define a turn speed separate from max speed.
+  stepper_R.setSpeed(-1*stepperMaxSpeed_R);
+  stepper_L.setSpeed(stepperMaxSpeed_L);
+  for (int i = 0; i < n_steps1; ++i) {
+    stepper_L.runSpeed();
+    stepper_R.runspeed();
+  }
   // Move forward
 
   // Turn 90 deg counterclockwise
