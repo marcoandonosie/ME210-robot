@@ -8,12 +8,6 @@
 #define RX_PIN_L 7 // TMC2209 TX (PDN)LEFT MOTOR
 #define TX_PIN_L 8 //TMC2209 RX (PDN)
 
-// Ultrasonic pins
-#define PIN_TRIG_1 13
-#define PIN_TRIG_2 12
-#define PIN_ECHO_1 2  // MUST be an interrupt pin
-#define PIN_ECHO_2 3  // MUST be an interrupt pin
-
 // Define Stepper Motor Driver Pins
 #define STEP_PIN_R 4
 #define DIR_PIN_R 3
@@ -22,20 +16,13 @@
 #define STEP_PIN_L 9
 #define DIR_PIN_L 6
 #define ENABLE_PIN_L 10
+
+// Pin for signal from sensor arduino.
+#define ARDUINO_COMMUNICATION_PIN 11
 // *****************************
 
 #define DRIVER_ADDRESS 0b00 // Default TMC2209 address
 #define RSENSE 0.11f // R_SENSE resistor value (check your hardware)
-
-// Ultrasonic sensor functions
-void ultraEmit(int sensorNum);
-void ultraEchoCallback();
-void ultraAvgRead(int sensorNum);
-// *****************************
-
-// Utility macro
-#define ABS(x) (((x) > 0) ? (x) : (-1 * (x)))
-// *****************************
 
 // Create SoftwareSerial instance for TMC2209 UART communication
 SoftwareSerial SERIAL_PORT_RIGHT(RX_PIN_R, TX_PIN_R);
@@ -75,6 +62,8 @@ void setup() {
   pinMode(STEP_PIN_R, OUTPUT);
   pinMode(DIR_PIN_R, OUTPUT);
 
+  pinMode(ARDUINO_COMMUNICATION_PIN, INPUT);
+
   delay(100); // Wait for the driver to initialize
 
   // Initialize TMC2209 -- see if this initializes both??
@@ -111,26 +100,23 @@ void loop() {
       const unsigned long smallTurnTime = 100;
       stepper_L.setSpeed(-1*stepperMaxSpeed_L);
       stepper_R.setSpeed(stepperMaxSpeed_R);
-      stepper_L.runSpeed();
-      delay(smallTurnTime);
-      // Stop turning
-      stepper_L.setSpeed(0);
-      stepper_R.setSpeed(0);
+      // Call runSpeed several times
+      const unsigned long n_steps = 10;
+      for (int i = 0; i < n_steps; ++i) {
+        stepper_L.runSpeed();
+        stepper_R.runSpeed();
+      }
+      // Stop turning by not calling runSpeed()
+      // stepper_L.setSpeed(0);
+      // stepper_R.setSpeed(0);
+      // Wait for sensors to read.
+      const unsigned long sensorReadDelay = 200;
+      delay(sensorReadDelay);
 
-      // read from sensors
-      int read0 = ultraAvgRead(0);
-      int read1 = ultraAvgRead(1);
-      // If delta between sensors is small and 
-      // measured distance is about 30-35", we are facing north
-      int diff = read0 - read1;
-      int delta = ABS(diff);
-
-      // TODO: Determine the threshold for which the bot is
-      // roughly perpendicular to a wall.
-      const int thresh = 0;
-      if (delta < thresh && 30 < read0 && read0 < 35) {
-        // we are perpendicular
+      // if we are in the right direction, continue with the program.
+      if (digitalRead(ARDUINO_COMMUNICATION_PIN)) {
         break;
+      }
       }
     }
   }
