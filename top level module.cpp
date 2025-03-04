@@ -71,7 +71,8 @@ AccelStepper stepper_L(AccelStepper::DRIVER, STEP_PIN_L, DIR_PIN_L);
 typedef enum {
  STATE_ORIENTATION, // state 1
  STATE_IGNITION,  // state 2
- STATE_ENTER_PANTRY //state 3
+ STATE_ENTER_PANTRY, //state 3
+ STATE_LOAD_RAMP
 } States_t;
 
 States_t state; //create state variable 
@@ -134,16 +135,12 @@ stepper_R.setMaxSpeed(10000); //do not change this
 stepper_R.setSpeed(4500); //fastest possible speed
 
 //configure servos
-Ignitionservo.attach(SERVO_IGNITION);
-Rampservo.attach (SERVO_RAMP);
+IgnitionServo.attach(SERVO_IGNITION);
+RampServo.attach (SERVO_RAMP);
 
 //timer logic 
 Timer1.initialize(2000000);  // Set timer to 2,000,000 µs (2 sec)
-  Timer1.attachInterrupt(pantryTimerISR);  // Link ISR function
-  volatile bool timerTriggered = false; // Set to true when interrupt fires
-
-//timer variables initialized
-  Timer1.initialize(2000000);  // Set timer to 2,000,000 µs (2 sec); change to whatever I want it at in the beginning
+  timerTriggered = false; // Set to true when interrupt fires
 
 //state variables here
 state = STATE_ORIENTATION; //state 1
@@ -340,8 +337,8 @@ void HandleEnterPantry() {
   move(); // Ensure stepper motor movement continues smoothly
 }
 
-HandleLoadRamp() {
-void Serial.println("YASSSSSS we're 30% there");
+void HandleLoadRamp() {
+  Serial.println("YASSSSSS we're 30% there");
 }
 
 
@@ -350,7 +347,7 @@ void Serial.println("YASSSSSS we're 30% there");
 
 
 //setting direction 
-void SetmoveForward(void) {
+void SetMoveForward(void) {
   if (direction != FORWARD) {
   stepper_R.setSpeed(4500);
   stepper_L.setSpeed(-4500);
@@ -387,10 +384,11 @@ void SetMoveStop(void) {
   stepper_R.setSpeed(-0);
   stepper_L.setSpeed(-0);
   direction = STOP;
+  //TODO: make sure we turn the motors OFF so they dont draw current / hold torque when we're in the pantry and stopping fr
   }
 }
 
-//this version is the brief stop between motons; includes timer logic 
+//this version is the brief stop between motions; includes timer logic 
 void SetMoveStopTimer(void) {
   if (direction != STOP) {
   stepper_R.setSpeed(-0);
@@ -422,10 +420,11 @@ void move(void) {
       Serial.println("Turning left...");
       break;
     case STOP:
-      Serial.println("Stopped...")
+      Serial.println("Stopped...");
       break;
     default: // Should never get into an unhandled state
       Serial.println("bruh we hit default direction");
       break;
+  }
 }
 
