@@ -17,9 +17,6 @@
 volatile bool timerStarted = false; 
 volatile bool timerTriggered = false; // Set to true when interrupt fires
 
-//TO DOS:
-//set the acceleration speed lower so our robot doesnt go off course when going stop-> forward
-//change the pin configs so the two servos have pins to attach to the board 
 
 // Define UART communication pins
 #define RX_PIN_R 0 // TMC2209 TX (PDN)RIGHT MOTOR
@@ -55,13 +52,14 @@ AccelStepper stepper_R(AccelStepper::DRIVER, STEP_PIN_R, DIR_PIN_R);
 AccelStepper stepper_L(AccelStepper::DRIVER, STEP_PIN_L, DIR_PIN_L);
 
 //Servo Motors 
-#define SERVO_IGNITION //TODO: reconfigure these pins and assign SERVO_IGNITION something 
-#define SERVO_RAMP //TODO: reconfigure these pins and assign SERVO_IGNITION something 
+//TODO: change the pin configs so the two servos have pins to attach to the board 
+#define SERVO_IGNITION_PIN //TODO: reconfigure these pins and assign SERVO_IGNITION something 
+#define SERVO_RAMP_PIN //TODO: reconfigure these pins and assign SERVO_IGNITION something 
 
 
 /*---------------CONSTANTS FOR MOVEMENT ----------------------------*/
 
-
+//TODO: write constants here for our timer logic for moving the robot
 
 
 
@@ -113,6 +111,11 @@ digitalWrite(ENABLE_PIN_R, LOW);
 pinMode(STEP_PIN_R, OUTPUT);
 pinMode(DIR_PIN_R, OUTPUT);
 
+pinMode(IGNITION_SERVO_PIN, OUTPUT);
+pinMode(RAMP_SERVO_PIN, OUTPUT);
+//TODO: decide if I need to pinmode servos to low OR high in the beginning 
+
+
 delay(100); // Wait for the driver to initialize
 
 // Initialize TMC2209 -- see if this initializes both??
@@ -133,6 +136,7 @@ stepper_L.setMaxSpeed(10000); //do not change this
 stepper_L.setSpeed(-4500); //fastest possible speed
 stepper_R.setMaxSpeed(10000); //do not change this
 stepper_R.setSpeed(4500); //fastest possible speed
+//TODO: declare the acceleration speed, and set the acceleration speed lower so our robot doesnt go off course when going stop-> forward
 
 //configure servos
 IgnitionServo.attach(SERVO_IGNITION);
