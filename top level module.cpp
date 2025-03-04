@@ -1,7 +1,7 @@
 #include <TMCStepper.h>
 #include <AccelStepper.h>
 #include <SoftwareSerial.h>
-#include "ServoControl.ino"
+//#include "ServoControl.ino" //add this if servocontrol is not in the same file in IDE / in an open tab atm 
 
 
 /*––––––––––––TIMER STUFF––––––––––––––*/
@@ -70,7 +70,7 @@ AccelStepper stepper_L(AccelStepper::DRIVER, STEP_PIN_L, DIR_PIN_L);
 /*---------------STATE MACHINE SETUP----------------------------*/
 typedef enum {
  STATE_ORIENTATION, // state 1
- STATE_IGNITION;  // state 2
+ STATE_IGNITION,  // state 2
  STATE_ENTER_PANTRY //state 3
 } States_t;
 
@@ -88,9 +88,9 @@ typedef enum {
   LEFT,
   RIGHT, 
   STOP
-} States_t;
+} Directions_t;
 
-States_t direction; //create a direction variable 
+Directions_t direction; //create a direction variable 
 /*--------------––––––––––––––––––––––----------------------------*/
 /*               MAIN CODE BEGINS HERE                            */
 /*--------------––––––––––––––––––––––----------------------------*/
@@ -134,8 +134,8 @@ stepper_R.setMaxSpeed(10000); //do not change this
 stepper_R.setSpeed(4500); //fastest possible speed
 
 //configure servos
-myservo.attach(SERVO_IGNITION);
-myservo.attach (SERVO_RAMP);
+Ignitionservo.attach(SERVO_IGNITION);
+Rampservo.attach (SERVO_RAMP);
 
 //timer logic 
 Timer1.initialize(2000000);  // Set timer to 2,000,000 µs (2 sec)
@@ -170,7 +170,7 @@ void loop() {
       Serial.println("We are now in state 3: entering the pantry");
       HandleEnterPantry();
       break;
-    case STATE_LOAD_RAMP;
+    case STATE_LOAD_RAMP:
       Serial.println("We are now in state 4: loading the ramp");
       HandleLoadRamp();
       break;
@@ -341,7 +341,7 @@ void HandleEnterPantry() {
 }
 
 HandleLoadRamp() {
-  Serial.println("YASSSSSS we're 30% there")
+void Serial.println("YASSSSSS we're 30% there");
 }
 
 
@@ -423,14 +423,9 @@ void move(void) {
       break;
     case STOP:
       Serial.println("Stopped...")
+      break;
     default: // Should never get into an unhandled state
       Serial.println("bruh we hit default direction");
       break;
-}
-
-// Servo motor activation (Placeholder)
-void ActivateServoMotor() {
-  // Add actual servo control code here
-  break;
 }
 
