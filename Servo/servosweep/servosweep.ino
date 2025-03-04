@@ -1,22 +1,64 @@
 #include <Servo.h>
 
-Servo myservo;  // create servo object to control a servo
-// twelve servo objects can be created on most boards
+
+//12 servos max on most boards
+Servo IgnitionServo;  // create servo object to control a servo
+Servo RampServo;
+
+
+void ActivateIgnitionServo();  // Function to start servo movement
+void ReverseIgnitionServo();   // Function to reverse servo movement
+void DisableIgnitionServo();   // Function to stop servo movement
+
+void ActivateRampServo();  // Function to start servo movement
+void ReverseRampServo();   // Function to reverse servo movement
+void DisableRampServo();   // Function to stop servo movement
 
 int pos = 0;    // variable to store the servo position
 
-void setup() {
-  myservo.attach(9);  // attaches the servo on pin 9 to the servo object
+
+void ActivateIgnitionServo() {
+  Serial.println("Ignition Servo is opening...")
+    for (pos = 0; pos <= 180; pos += 2) {
+      //made increments 2 so it would go faster
+        Ignitionservo.write(pos);
+        delay(15);
+    }
 }
 
-void loop() {
-  for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
-    // in steps of 1 degree
-    myservo.write(pos);              // tell servo to go to position in variable 'pos'
-    delay(15);                       // waits 15ms for the servo to reach the position
-  }
-  for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-    myservo.write(pos);              // tell servo to go to position in variable 'pos'
-    delay(15);                       // waits 15ms for the servo to reach the position
-  }
+void ReverseIgnitionServo() {
+  Serial.println("Ignition Servo is closing...")
+    for (pos = 0; pos >= 180; pos -= 2) {
+      //made increments 2 so it would go faster
+        Ignitionservo.write(pos);
+        delay(15);
+    }
+}
+
+void DisableIgnitionServo() {
+    Ignitionservo.detach(); // Detaches the servo to stop it from moving
+}
+
+
+
+void ActivateRampServo() {
+  Serial.println("Ramp Servo is opening...")
+    for (pos = 0; pos <= 180; pos += 2) {
+      //made increments 2 so it would go faster
+        Rampservo.write(pos);
+        delay(15);
+    }
+}
+
+void ReverseRampServo() {
+  Serial.println("Ramp Servo is closing...")
+    for (pos = 0; pos >= 180; pos -= 2) {
+      //made increments 2 so it would go faster
+        Rampservo.write(pos);
+        delay(15);
+    }
+}
+
+void DisableRampServo() {
+    Rampservo.detach(); // Detaches the servo to stop it from moving
 }
