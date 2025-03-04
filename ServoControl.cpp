@@ -5,20 +5,11 @@
 Servo IgnitionServo;  // create servo object to control a servo
 Servo RampServo;
 
-
-void ActivateIgnitionServo();  // Function to start servo movement
-void ReverseIgnitionServo();   // Function to reverse servo movement
-void DisableIgnitionServo();   // Function to stop servo movement
-
-void ActivateRampServo();  // Function to start servo movement
-void ReverseRampServo();   // Function to reverse servo movement
-void DisableRampServo();   // Function to stop servo movement
-
 int pos = 0;    // variable to store the servo position
 
 
 void ActivateIgnitionServo() {
-  Serial.println("Ignition Servo is opening...")
+  Serial.println("Ignition Servo is opening...");
     for (pos = 0; pos <= 180; pos += 2) {
       //made increments 2 so it would go faster
         Ignitionservo.write(pos);
@@ -27,8 +18,8 @@ void ActivateIgnitionServo() {
 }
 
 void ReverseIgnitionServo() {
-  Serial.println("Ignition Servo is closing...")
-    for (pos = 0; pos >= 180; pos -= 2) {
+  Serial.println("Ignition Servo is closing...");
+    for (pos = 180; pos >= 0; pos -= 2) {
       //made increments 2 so it would go faster
         Ignitionservo.write(pos);
         delay(15);
@@ -42,7 +33,7 @@ void DisableIgnitionServo() {
 
 
 void ActivateRampServo() {
-  Serial.println("Ramp Servo is opening...")
+  Serial.println("Ramp Servo is opening...");
     for (pos = 0; pos <= 180; pos += 2) {
       //made increments 2 so it would go faster
         Rampservo.write(pos);
@@ -51,8 +42,8 @@ void ActivateRampServo() {
 }
 
 void ReverseRampServo() {
-  Serial.println("Ramp Servo is closing...")
-    for (pos = 0; pos >= 180; pos -= 2) {
+  Serial.println("Ramp Servo is closing...");
+    for (pos = 180; pos >= 0; pos -= 2) {
       //made increments 2 so it would go faster
         Rampservo.write(pos);
         delay(15);
