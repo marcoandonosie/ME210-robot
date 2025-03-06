@@ -3,7 +3,6 @@
 #define PIN_ECHO_1 2
 #define PIN_ECHO_2 3
 
-float distance;
 long avgLast4 = 0;
 // long last2Avgs[2] = {0,0};
 // long last4[4] = {0,0,0,0};
@@ -24,6 +23,16 @@ long avgRead(int sensorNum = 0) {
   return avg;
 }
 
+float distanceRead(int sensorNum = 0) {
+  long avg = 0;
+  uint8_t echoPin = sensorNum == 0 ? PIN_ECHO_1 : PIN_ECHO_2;
+  for (int i = 0; i < 8; ++i) {
+    ultraStartCallback(sensorNum); // Send out an ultrasonic wave.
+    avg += pulseIn(echoPin, HIGH) >> 3;
+  }
+  return (avg*.0343)/2;  
+}
+
 void ultraStartCallback(int sensorNum = 0) {
   // Generate an ultrasonic wave.
   uint8_t trigPin = sensorNum == 0 ? PIN_TRIG_1 : PIN_TRIG_2;
@@ -36,7 +45,6 @@ void ultraStartCallback(int sensorNum = 0) {
 }
 
 void setup() {
-  // ITimer1.attachInterrupt(100.0, ultraStartCallback); // 10 times per second
   // put your setup code here, to run once:
   pinMode(PIN_TRIG_1, OUTPUT);
   pinMode(PIN_TRIG_2, OUTPUT);
@@ -51,12 +59,21 @@ void setup() {
 
 void loop() {
   if (Serial.read() != -1) {
-    int read0 = avgRead(0);
+    // int read0 = avgRead(0);
+    float dist0 = distanceRead(0);
     delay(100);
-    int read1 = avgRead(1);
+    float dist1 = distanceRead(1);
+    // int read1 = avgRead(1);
+    // int delta = read0 - read1;
+    
     Serial.print("Sensor 0: ");
-    Serial.print(read0);
-    Serial.print(" Sensor 1:");
-    Serial.println(read1);
+    // Serial.print(read0);
+    Serial.print(dist0);
+    Serial.print(" Sensor 1: ");
+    // Serial.println(read1);
+    Serial.print(dist1);
+    Serial.print(" Delta: ");
+    Serial.println(dist0 - dist1);
+    // Serial.println(delta);
   }
 }
