@@ -5,9 +5,6 @@
 #define in4 11
 #define enB 5
 
-int rotDirection = 0;
-int pressed = false;
-
 void setup() {
   pinMode(enA, OUTPUT);
   pinMode(in1, OUTPUT);
