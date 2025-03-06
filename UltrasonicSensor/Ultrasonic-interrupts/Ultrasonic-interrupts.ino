@@ -5,7 +5,9 @@
 #define ARDUINO_COMMUNICATION_PIN_OUT 13
 #define ARDUINO_COMMUNICATION_PIN_IN 12
 
-#include "shared_defines.hpp"
+// ensure following are defined equally in this and master-fsm.
+#define LONG_PULSE 500
+#define SHORT_PULSE 50
 
 void ultraStartCallback(int);
 

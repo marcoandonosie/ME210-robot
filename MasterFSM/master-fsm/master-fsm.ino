@@ -1,7 +1,10 @@
 #include <TMCStepper.h>
 #include <AccelStepper.h>
 #include <SoftwareSerial.h>
-#include "shared_defines.hpp"
+
+#define LONG_PULSE 500
+#define SHORT_PULSE 50
+
 // Define UART communication pins
 #define RX_PIN_R 0 // TMC2209 TX (PDN)RIGHT MOTOR
 #define TX_PIN_R 1 // TMC2209 RX (PDN)
