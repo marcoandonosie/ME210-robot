@@ -1,7 +1,7 @@
 #include <TMCStepper.h>
 #include <AccelStepper.h>
 #include <SoftwareSerial.h>
-
+#include "shared_defines.hpp"
 // Define UART communication pins
 #define RX_PIN_R 0 // TMC2209 TX (PDN)RIGHT MOTOR
 #define TX_PIN_R 1 // TMC2209 RX (PDN)
@@ -21,7 +21,7 @@
 #define ARDUINO_COMMUNICATION_PIN_OUT 12
 #define ARDUINO_COMMUNICATION_PIN_IN  13
 
-// TODO: figure out how many steps corresponds to a 90 deg turn
+// TODO: figure out how many ms corresponds to a 90 deg turn
 #define DEGREES_90 100
 
 #define MOVE_FORWARD(x) \
@@ -149,10 +149,8 @@ void loop() {
       Serial.println(duration);
       digitalWrite(ARDUINO_COMMUNICATION_PIN_OUT, LOW);
 
-      const unsigned long shortDuration = 50; // signal that we should keep rotating
-      const unsigned long longDuration = 100; // signal that we should continue with fsm.
       // if we are in the right direction, continue with the program.
-      if (duration >= longDuration) 
+      if (duration >= LONG_PULSE) 
         break;
     }
   }
