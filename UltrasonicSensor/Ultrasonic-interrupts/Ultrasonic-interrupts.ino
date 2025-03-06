@@ -2,14 +2,8 @@
 #define PIN_TRIG_2 9
 #define PIN_ECHO_1 2
 #define PIN_ECHO_2 3
-
-long avgLast4 = 0;
-// long last2Avgs[2] = {0,0};
-// long last4[4] = {0,0,0,0};
-uint32_t readings[32];
-uint32_t n = 0; 
-uint32_t m = 0;
-long pulseBeginTimeMicros = 0;
+#define ARDUINO_COMMUNICATION_PIN_OUT 5
+#define ARDUINO_COMMUNICATION_PIN_IN 6
 
 void ultraStartCallback(int);
 
@@ -50,11 +44,33 @@ void setup() {
   pinMode(PIN_TRIG_2, OUTPUT);
   pinMode(PIN_ECHO_1, INPUT);
   pinMode(PIN_ECHO_2, INPUT);
+  pinMode(ARDUINO_COMMUNICATION_PIN_IN, INPUT);
+  pinMode(ARDUINO_COMMUNICATION_PIN_OUT, OUTPUT);
+
   digitalWrite(PIN_TRIG_1, LOW);
   digitalWrite(PIN_TRIG_2, LOW);
+  digitalWrite(ARDUINO_COMMUNICATION_PIN_IN, LOW);
 
   Serial.begin(9600);
   while (!Serial);
+}
+
+void loop2() {
+  // Wait for a high on ARDUINO_COMMUNICATION_PIN_IN.
+  while (!digitalRead(ARDUINO_COMMUNICATION_PIN_IN));
+
+  // Take reading.
+  bool isFacingNorth = false;
+
+  // Send info back to other board.
+  if (isFacingNorth) {
+    digitalWrite(ARDUINO_COMMUNICATION_PIN_OUT, HIGH);
+    while (1); // Stall forever -- this Arduino has done its job.
+  } else {
+    digitalWrite(ARDUINO_COMMUNICATION_PIN_OUT, HIGH);
+    delay(25);
+    digitalWrite(ARDUINO_COMMUNICATION_PIN_OUT, LOW);
+  }
 }
 
 void loop() {

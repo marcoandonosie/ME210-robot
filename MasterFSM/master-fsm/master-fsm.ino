@@ -20,6 +20,37 @@
 // Pin for signal from sensor arduino.
 #define ARDUINO_COMMUNICATION_PIN_OUT 11
 #define ARDUINO_COMMUNICATION_PIN_IN  12
+
+// TODO: figure out how many steps corresponds to a 90 deg turn
+#define DEGREES_90 100
+
+#define MOVE_FORWARD(x) \
+startTime = millis();\
+stepper_R.setSpeed(stepperMaxSpeed);\
+stepper_L.setSpeed(stepperMaxSpeed);\
+while (millis() - startTime < (x)) {\
+  stepper_L.runSpeed();\
+  stepper_R.runSpeed();\
+}
+
+#define TURN_CW(x) \
+startTime = millis();\
+stepper_R.setSpeed(stepperMaxSpeed);\
+stepper_L.setSpeed(-1*stepperMaxSpeed);\
+while (millis() - startTime < (x)) {\
+  stepper_L.runSpeed();\
+  stepper_R.runSpeed();\
+}
+
+#define TURN_CCW(x) \
+startTime = millis();\
+stepper_R.setSpeed(-1*stepperMaxSpeed);\
+stepper_L.setSpeed(stepperMaxSpeed);\
+while (millis() - startTime < (x)) {\
+  stepper_L.runSpeed();\
+  stepper_R.runSpeed();\
+}
+
 // *****************************
 
 #define DRIVER_ADDRESS 0b00 // Default TMC2209 address
@@ -38,10 +69,10 @@ TMC2209Stepper driver_R(&SERIAL_PORT_RIGHT, RSENSE, DRIVER_ADDRESS);
 // Stepper Motor (Step/Dir Control)
 AccelStepper stepper_R(AccelStepper::DRIVER, STEP_PIN_R, DIR_PIN_R);
 AccelStepper stepper_L(AccelStepper::DRIVER, STEP_PIN_L, DIR_PIN_L);
-const float stepperMaxSpeed_L = -4500;
-const float stepperMaxSpeed_R = 4500;
+const float stepperMaxSpeed = 4500;
+const float stepperTurnSpeed = 2000;
 // *****************************
-
+unsigned long startTime = 0;
 void setup() {
   // put your setup code here, to run once:
   
@@ -65,6 +96,7 @@ void setup() {
 
   pinMode(ARDUINO_COMMUNICATION_PIN_IN, INPUT);  
   pinMode(ARDUINO_COMMUNICATION_PIN_OUT, OUTPUT);
+  digitalWrite(ARDUINO_COMMUNCATION_PIN_OUT, LOW);
 
   delay(100); // Wait for the driver to initialize
 
@@ -87,7 +119,9 @@ void setup() {
   stepper_R.setMaxSpeed(10000); //do not change this
   // stepper_R.setSpeed(4500); //fastest possible speed
 
+  Serial.begin(9600);
   Serial.println("TMC2209 Initialized. Motor should start moving...");
+  Serial.println("This is for Eden.");
 }
 
 void loop() {
@@ -99,72 +133,68 @@ void loop() {
   {
     while (1) {
       // Turn a little
-      const unsigned long smallTurnTime = 100;
-      stepper_L.setSpeed(-1*stepperMaxSpeed_L);
-      stepper_R.setSpeed(stepperMaxSpeed_R);
-      // Call runSpeed several times
-      const unsigned long n_steps = 10;
-      for (int i = 0; i < n_steps; ++i) {
-        stepper_L.runSpeed();
-        stepper_R.runSpeed();
-      }
-      // Stop turning by not calling runSpeed()
+      TURN_CW(500);
 
       // Tell sensors we are ready.
       // TODO: add a short delay in the sensor arduino to ensure
       // pulseIn is called while still reading LOW.
-      digitalWrite(ARDUINO_COMMUNICATION_PIN_OUT);
+      digitalWrite(ARDUINO_COMMUNICATION_PIN_OUT, HIGH);
 
       // Wait for sensors to read.
       unsigned long duration = pulseIn(ARDUINO_COMMUNICATION_PIN_IN, HIGH);
 
+      digitalWrite(ARDUINO_COMMUNICATION_PIN_OUT, LOW);
+
       const unsigned long shortDuration = 50; // signal that we should keep rotating
       const unsigned long longDuration = 100; // signal that we should continue with fsm.
       // if we are in the right direction, continue with the program.
-      if (duration >= longDuration) {
+      if (duration >= longDuration) 
         break;
-      }
     }
   }
 
-  // Move forward
-  const unsigned long n_steps1 = 1000;
-  stepper_R.setSpeed(stepperMaxSpeed_R);
-  stepper_L.setSpeed(stepperMaxSpeed_L);
-  for (int i = 0; i < n_steps1; ++i) {
-    stepper_L.runSpeed();
-    stepper_R.runspeed();
-  }
+  Serial.println("Stage 1");
+  MOVE_FORWARD(1000);
+
   // Turn 90 deg clockwise
-  const unsigned long n_steps2 = 100;
   // TODO: define a turn speed separate from max speed.
-  stepper_R.setSpeed(-1*stepperMaxSpeed_R);
-  stepper_L.setSpeed(stepperMaxSpeed_L);
-  for (int i = 0; i < n_steps1; ++i) {
-    stepper_L.runSpeed();
-    stepper_R.runspeed();
-  }
-  // Move forward
-
-  // Turn 90 deg counterclockwise
+  Serial.println("Stage 2");
+  TURN_CW(DEGREES_90);
 
   // Move forward
+  Serial.println("Stage 3");
+  MOVE_FORWARD(1000);
 
   // Turn 90 deg counterclockwise
+  Serial.println("Stage 4");
+  TURN_CCW(DEGREES_90);
+
+  // Move forward
+  MOVE_FORWARD(1000);
+
+  // Turn 90 deg counterclockwise
+  TURN_CCW(DEGREES_90);
 
   // Move forward, pushing the pot
+  MOVE_FORWARD(1000);
 
   // Turn 90 deg counterclockwise
+  TURN_CCW(DEGREES_90);
 
   // Move forward to go around the pot handle
+  MOVE_FORWARD(500);
 
   // Turn 90 deg clockwise
+  TURN_CW(DEGREES_90);
 
   // Move forward a short bit to get between handles
+  MOVE_FORWARD(200);
 
   // Turn 90 deg clockwise to face pot
+  TURN_CW(DEGREES_90);
 
   // Move forward to hit pot
+  MOVE_FORWARD(100);
 
   // Release ball
 
