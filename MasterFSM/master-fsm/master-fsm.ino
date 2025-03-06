@@ -6,34 +6,25 @@
 #define RX_PIN_R 0 // TMC2209 TX (PDN)RIGHT MOTOR
 #define TX_PIN_R 1 // TMC2209 RX (PDN)
 #define RX_PIN_L 7 // TMC2209 TX (PDN)LEFT MOTOR
-#define TX_PIN_L 8 //TMC2209 RX (PDN)
+#define TX_PIN_L 8 // TMC2209 RX (PDN)
 
 // Define Stepper Motor Driver Pins
 #define STEP_PIN_R 4
 #define DIR_PIN_R 3
 #define ENABLE_PIN_R 2 
 
-#define STEP_PIN_L 9
+#define STEP_PIN_L 11
 #define DIR_PIN_L 6
-#define ENABLE_PIN_L 10
+#define ENABLE_PIN_L 5
 
 // Pin for signal from sensor arduino.
-#define ARDUINO_COMMUNICATION_PIN_OUT 11
-#define ARDUINO_COMMUNICATION_PIN_IN  12
+#define ARDUINO_COMMUNICATION_PIN_OUT 12
+#define ARDUINO_COMMUNICATION_PIN_IN  13
 
 // TODO: figure out how many steps corresponds to a 90 deg turn
 #define DEGREES_90 100
 
 #define MOVE_FORWARD(x) \
-startTime = millis();\
-stepper_R.setSpeed(stepperMaxSpeed);\
-stepper_L.setSpeed(stepperMaxSpeed);\
-while (millis() - startTime < (x)) {\
-  stepper_L.runSpeed();\
-  stepper_R.runSpeed();\
-}
-
-#define TURN_CW(x) \
 startTime = millis();\
 stepper_R.setSpeed(stepperMaxSpeed);\
 stepper_L.setSpeed(-1*stepperMaxSpeed);\
@@ -42,10 +33,19 @@ while (millis() - startTime < (x)) {\
   stepper_R.runSpeed();\
 }
 
+#define TURN_CW(x) \
+startTime = millis();\
+stepper_R.setSpeed(stepperTurnSpeed);\
+stepper_L.setSpeed(stepperTurnSpeed);\
+while (millis() - startTime < (x)) {\
+  stepper_L.runSpeed();\
+  stepper_R.runSpeed();\
+}
+
 #define TURN_CCW(x) \
 startTime = millis();\
-stepper_R.setSpeed(-1*stepperMaxSpeed);\
-stepper_L.setSpeed(stepperMaxSpeed);\
+stepper_R.setSpeed(-1*stepperTurnSpeed);\
+stepper_L.setSpeed(-1*stepperTurnSpeed);\
 while (millis() - startTime < (x)) {\
   stepper_L.runSpeed();\
   stepper_R.runSpeed();\
@@ -69,8 +69,8 @@ TMC2209Stepper driver_R(&SERIAL_PORT_RIGHT, RSENSE, DRIVER_ADDRESS);
 // Stepper Motor (Step/Dir Control)
 AccelStepper stepper_R(AccelStepper::DRIVER, STEP_PIN_R, DIR_PIN_R);
 AccelStepper stepper_L(AccelStepper::DRIVER, STEP_PIN_L, DIR_PIN_L);
-const float stepperMaxSpeed = 4500;
-const float stepperTurnSpeed = 2000;
+const float stepperMaxSpeed = 500;
+const float stepperTurnSpeed = 1000;
 // *****************************
 unsigned long startTime = 0;
 void setup() {
@@ -96,7 +96,7 @@ void setup() {
 
   pinMode(ARDUINO_COMMUNICATION_PIN_IN, INPUT);  
   pinMode(ARDUINO_COMMUNICATION_PIN_OUT, OUTPUT);
-  digitalWrite(ARDUINO_COMMUNCATION_PIN_OUT, LOW);
+  digitalWrite(ARDUINO_COMMUNICATION_PIN_OUT, LOW);
 
   delay(100); // Wait for the driver to initialize
 
@@ -121,7 +121,10 @@ void setup() {
 
   Serial.begin(9600);
   Serial.println("TMC2209 Initialized. Motor should start moving...");
-  Serial.println("This is for Eden.");
+}
+
+void loop2() {
+  MOVE_FORWARD(1000);
 }
 
 void loop() {
@@ -142,7 +145,8 @@ void loop() {
 
       // Wait for sensors to read.
       unsigned long duration = pulseIn(ARDUINO_COMMUNICATION_PIN_IN, HIGH);
-
+      Serial.print("Duration seen: ");
+      Serial.println(duration);
       digitalWrite(ARDUINO_COMMUNICATION_PIN_OUT, LOW);
 
       const unsigned long shortDuration = 50; // signal that we should keep rotating

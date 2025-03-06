@@ -2,8 +2,8 @@
 #define PIN_TRIG_2 9
 #define PIN_ECHO_1 2
 #define PIN_ECHO_2 3
-#define ARDUINO_COMMUNICATION_PIN_OUT 5
-#define ARDUINO_COMMUNICATION_PIN_IN 6
+#define ARDUINO_COMMUNICATION_PIN_OUT 13
+#define ARDUINO_COMMUNICATION_PIN_IN 12
 
 void ultraStartCallback(int);
 
@@ -32,7 +32,7 @@ void ultraStartCallback(int sensorNum = 0) {
   uint8_t trigPin = sensorNum == 0 ? PIN_TRIG_1 : PIN_TRIG_2;
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
-  pulseBeginTimeMicros = micros();
+  // pulseBeginTimeMicros = micros();
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
@@ -55,12 +55,21 @@ void setup() {
   while (!Serial);
 }
 
-void loop2() {
+void loop() {
   // Wait for a high on ARDUINO_COMMUNICATION_PIN_IN.
   while (!digitalRead(ARDUINO_COMMUNICATION_PIN_IN));
 
   // Take reading.
   bool isFacingNorth = false;
+
+  float dist0 = distanceRead(0);
+  delay(100);
+  float dist1 = distanceRead(1);
+  float diff = dist1 - dist0;
+  float delta = (diff < 0) ? -1*diff : diff; // abs(diff)
+  if (delta < 5 && dist0 > 50) {
+    isFacingNorth = true;
+  }
 
   // Send info back to other board.
   if (isFacingNorth) {
@@ -73,7 +82,7 @@ void loop2() {
   }
 }
 
-void loop() {
+void loop2() {
   if (Serial.read() != -1) {
     // int read0 = avgRead(0);
     float dist0 = distanceRead(0);
