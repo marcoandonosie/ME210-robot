@@ -1,9 +1,15 @@
 #include <TMCStepper.h>
 #include <AccelStepper.h>
 #include <SoftwareSerial.h>
+#include <Servo.h>
 
 #define LONG_PULSE 500
 #define SHORT_PULSE 50
+
+#define PIN_TRIG_1 13
+#define PIN_TRIG_2 2
+#define PIN_ECHO_1 12
+#define PIN_ECHO_2 5
 
 // Define UART communication pins
 #define RX_PIN_R 0 // TMC2209 TX (PDN)RIGHT MOTOR
@@ -14,18 +20,15 @@
 // Define Stepper Motor Driver Pins
 #define STEP_PIN_R 4
 #define DIR_PIN_R 3
-#define ENABLE_PIN_R 2 
 
 #define STEP_PIN_L 11
 #define DIR_PIN_L 6
-#define ENABLE_PIN_L 5
-
-// Pin for signal from sensor arduino.
-#define ARDUINO_COMMUNICATION_PIN_OUT 12
-#define ARDUINO_COMMUNICATION_PIN_IN  13
 
 // TODO: figure out how many ms corresponds to a 90 deg turn
-#define DEGREES_90 100
+#define DEGREES_90 700
+
+Servo ignition;
+Servo latch;
 
 #define MOVE_FORWARD(x) \
 startTime = millis();\
@@ -35,6 +38,16 @@ while (millis() - startTime < (x)) {\
   stepper_L.runSpeed();\
   stepper_R.runSpeed();\
 }
+
+#define MOVE_BACKWARD(x) \
+startTime = millis();\
+stepper_R.setSpeed(-1*stepperMaxSpeed);\
+stepper_L.setSpeed(stepperMaxSpeed);\
+while (millis() - startTime < (x)) {\
+ stepper_L.runSpeed();\
+ stepper_R.runSpeed();\
+}
+
 
 #define TURN_CW(x) \
 startTime = millis();\
@@ -74,8 +87,25 @@ AccelStepper stepper_R(AccelStepper::DRIVER, STEP_PIN_R, DIR_PIN_R);
 AccelStepper stepper_L(AccelStepper::DRIVER, STEP_PIN_L, DIR_PIN_L);
 const float stepperMaxSpeed = 500;
 const float stepperTurnSpeed = 1000;
+
 // *****************************
 unsigned long startTime = 0;
+
+float distanceRead(int sensorNum = 0) {
+  long avg = 0;
+  uint8_t echoPin = sensorNum == 0 ? PIN_ECHO_1 : PIN_ECHO_2;
+  uint8_t trigPin = sensorNum == 0 ? PIN_TRIG_1 : PIN_TRIG_2;
+  for (int i = 0; i < 8; ++i) {
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+    avg += pulseIn(echoPin, HIGH) >> 3;
+  }
+  return (avg*.0343)/2;  
+}
+
 void setup() {
   // put your setup code here, to run once:
   
@@ -87,19 +117,11 @@ void setup() {
   driver_R.beginSerial(115200);
   driver_L.beginSerial(115200);
 
-  pinMode(ENABLE_PIN_L, OUTPUT);
-  digitalWrite(ENABLE_PIN_L, LOW); 
   pinMode(STEP_PIN_L, OUTPUT);
   pinMode(DIR_PIN_L, OUTPUT);
 
-  pinMode(ENABLE_PIN_R, OUTPUT);
-  digitalWrite(ENABLE_PIN_R, LOW);
   pinMode(STEP_PIN_R, OUTPUT);
   pinMode(DIR_PIN_R, OUTPUT);
-
-  pinMode(ARDUINO_COMMUNICATION_PIN_IN, INPUT);  
-  pinMode(ARDUINO_COMMUNICATION_PIN_OUT, OUTPUT);
-  digitalWrite(ARDUINO_COMMUNICATION_PIN_OUT, LOW);
 
   delay(100); // Wait for the driver to initialize
 
@@ -122,6 +144,18 @@ void setup() {
   stepper_R.setMaxSpeed(10000); //do not change this
   // stepper_R.setSpeed(4500); //fastest possible speed
 
+  ignition.attach(9);
+  latch.attach(10);
+  latch.write(0);
+  ignition.write(90);
+
+  pinMode(PIN_TRIG_1, OUTPUT);
+  pinMode(PIN_TRIG_2, OUTPUT);
+  pinMode(PIN_ECHO_1, INPUT);
+  pinMode(PIN_ECHO_2, INPUT);
+  digitalWrite(PIN_TRIG_1, LOW);
+  digitalWrite(PIN_TRIG_2, LOW);
+
   Serial.begin(9600);
   Serial.println("TMC2209 Initialized. Motor should start moving...");
 }
@@ -137,71 +171,79 @@ void loop() {
 
   // Orient
   {
+    Serial.println("Orientation start.");
     while (1) {
+      Serial.println("Reading...");
+      // Take reading.
+      float dist0 = distanceRead(0);
+      delay(100); // Delay to ensure no cross-contamination between the ultrasonic sensors.
+      float dist1 = distanceRead(1);
+      Serial.print("Dist0: ");
+      Serial.print(dist0);
+      Serial.print(", Dist1: ");
+      Serial.println(dist1);
+      float diff = dist1 - dist0;
+      float delta = (diff < 0) ? -1*diff : diff; // delta = abs(diff)
+      bool isFacingNorth = ((delta < 5) && (dist0 > 50));
+      Serial.print("isFacingNorth: ");
+      Serial.println(isFacingNorth);
+      // Send info back to other board.
+      if (isFacingNorth) break;
+
       // Turn a little
       TURN_CW(500);
-
-      // Tell sensors we are ready.
-      // TODO: add a short delay in the sensor arduino to ensure
-      // pulseIn is called while still reading LOW.
-      digitalWrite(ARDUINO_COMMUNICATION_PIN_OUT, HIGH);
-
-      // Wait for sensors to read.
-      unsigned long duration = pulseIn(ARDUINO_COMMUNICATION_PIN_IN, HIGH);
-      Serial.print("Duration seen: ");
-      Serial.println(duration);
-      digitalWrite(ARDUINO_COMMUNICATION_PIN_OUT, LOW);
-
-      // if we are in the right direction, continue with the program.
-      if (duration >= LONG_PULSE) 
-        break;
     }
   }
 
   Serial.println("Stage 1");
-  MOVE_FORWARD(1000);
-
+  //igition servo
+  ignition.write(0);
+  MOVE_FORWARD(400);
   // Turn 90 deg clockwise
   // TODO: define a turn speed separate from max speed.
   Serial.println("Stage 2");
   TURN_CW(DEGREES_90);
 
+
+  //hit ignition
+  MOVE_FORWARD(100);
+
   // Move forward
   Serial.println("Stage 3");
-  MOVE_FORWARD(1000);
+  MOVE_BACKWARD(4000);
 
   // Turn 90 deg counterclockwise
   Serial.println("Stage 4");
   TURN_CCW(DEGREES_90);
 
-  // Move forward
-  MOVE_FORWARD(1000);
+    // Move forward
+  MOVE_FORWARD(600);
+
+  MOVE_BACKWARD(200);
 
   // Turn 90 deg counterclockwise
-  TURN_CCW(DEGREES_90);
+  TURN_CW(600);
 
   // Move forward, pushing the pot
-  MOVE_FORWARD(1000);
+  MOVE_FORWARD(4000);
+
+  MOVE_BACKWARD(300);
 
   // Turn 90 deg counterclockwise
-  TURN_CCW(DEGREES_90);
+  TURN_CW(DEGREES_90/2);
 
   // Move forward to go around the pot handle
-  MOVE_FORWARD(500);
+  MOVE_FORWARD(700);
 
   // Turn 90 deg clockwise
-  TURN_CW(DEGREES_90);
+  TURN_CCW(900);
 
-  // Move forward a short bit to get between handles
-  MOVE_FORWARD(200);
+  // Move forward a short bit to get between handles\
+  //ball release
+  MOVE_FORWARD(1000);
+  latch.write(180);
+  MOVE_FORWARD(2000);
+  MOVE_BACKWARD(1000);
 
-  // Turn 90 deg clockwise to face pot
-  TURN_CW(DEGREES_90);
+ }
 
-  // Move forward to hit pot
-  MOVE_FORWARD(100);
-
-  // Release ball
-
-  // End game (shut off buzzer)
-}
