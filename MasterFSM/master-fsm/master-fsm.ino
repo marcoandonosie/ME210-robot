@@ -37,7 +37,8 @@ stepper_L.setSpeed(-1*stepperMaxSpeed);\
 while (millis() - startTime < (x)) {\
   stepper_L.runSpeed();\
   stepper_R.runSpeed();\
-}
+}\
+delay(500);
 
 #define MOVE_BACKWARD(x) \
 startTime = millis();\
@@ -46,7 +47,8 @@ stepper_L.setSpeed(stepperMaxSpeed);\
 while (millis() - startTime < (x)) {\
  stepper_L.runSpeed();\
  stepper_R.runSpeed();\
-}
+}\
+delay(500);
 
 
 #define TURN_CW(x) \
@@ -56,7 +58,7 @@ stepper_L.setSpeed(stepperTurnSpeed);\
 while (millis() - startTime < (x)) {\
   stepper_L.runSpeed();\
   stepper_R.runSpeed();\
-}
+}\
 
 #define TURN_CCW(x) \
 startTime = millis();\
@@ -65,7 +67,7 @@ stepper_L.setSpeed(-1*stepperTurnSpeed);\
 while (millis() - startTime < (x)) {\
   stepper_L.runSpeed();\
   stepper_R.runSpeed();\
-}
+}\
 
 // *****************************
 
@@ -85,8 +87,8 @@ TMC2209Stepper driver_R(&SERIAL_PORT_RIGHT, RSENSE, DRIVER_ADDRESS);
 // Stepper Motor (Step/Dir Control)
 AccelStepper stepper_R(AccelStepper::DRIVER, STEP_PIN_R, DIR_PIN_R);
 AccelStepper stepper_L(AccelStepper::DRIVER, STEP_PIN_L, DIR_PIN_L);
-const float stepperMaxSpeed = 500;
-const float stepperTurnSpeed = 1000;
+float stepperMaxSpeed = 4500;
+const float stepperTurnSpeed = 2000;
 
 // *****************************
 unsigned long startTime = 0;
@@ -176,7 +178,7 @@ void loop() {
       Serial.println("Reading...");
       // Take reading.
       float dist0 = distanceRead(0);
-      delay(100); // Delay to ensure no cross-contamination between the ultrasonic sensors.
+      delay(50); // Delay to ensure no cross-contamination between the ultrasonic sensors.
       float dist1 = distanceRead(1);
       Serial.print("Dist0: ");
       Serial.print(dist0);
@@ -187,63 +189,72 @@ void loop() {
       bool isFacingNorth = ((delta < 5) && (dist0 > 50));
       Serial.print("isFacingNorth: ");
       Serial.println(isFacingNorth);
-      // Send info back to other board.
+
+
       if (isFacingNorth) break;
 
       // Turn a little
-      TURN_CW(500);
+      TURN_CW(200);
     }
   }
+
+  // Turn to face north
+  TURN_CW(DEGREES_90);
+  delay(500);
+  stepperMaxSpeed = 4000;
+  MOVE_BACKWARD(500);
+  stepperMaxSpeed = 4500;
 
   Serial.println("Stage 1");
   //igition servo
   ignition.write(0);
-  MOVE_FORWARD(400);
-  // Turn 90 deg clockwise
-  // TODO: define a turn speed separate from max speed.
-  Serial.println("Stage 2");
+  delay(200);
+  MOVE_FORWARD(1000);
+
+  // Serial.println("Stage 2");
   TURN_CW(DEGREES_90);
 
-
   //hit ignition
-  MOVE_FORWARD(100);
+  stepperMaxSpeed = 3000;
+  MOVE_FORWARD(300);
+  stepperMaxSpeed = 4500;
 
-  // Move forward
-  Serial.println("Stage 3");
-  MOVE_BACKWARD(4000);
+  // // Move forward
+  // Serial.println("Stage 3");
+  // MOVE_BACKWARD(4000);
 
-  // Turn 90 deg counterclockwise
-  Serial.println("Stage 4");
-  TURN_CCW(DEGREES_90);
+  // // Turn 90 deg counterclockwise
+  // Serial.println("Stage 4");
+  // TURN_CCW(DEGREES_90);
 
-    // Move forward
-  MOVE_FORWARD(600);
+  //   // Move forward
+  // MOVE_FORWARD(600);
 
-  MOVE_BACKWARD(200);
+  // MOVE_BACKWARD(200);
 
-  // Turn 90 deg counterclockwise
-  TURN_CW(600);
+  // // Turn 90 deg counterclockwise
+  // TURN_CW(600);
 
-  // Move forward, pushing the pot
-  MOVE_FORWARD(4000);
+  // // Move forward, pushing the pot
+  // MOVE_FORWARD(4000);
 
-  MOVE_BACKWARD(300);
+  // MOVE_BACKWARD(300);
 
-  // Turn 90 deg counterclockwise
-  TURN_CW(DEGREES_90/2);
+  // // Turn 90 deg counterclockwise
+  // TURN_CW(DEGREES_90/2);
 
-  // Move forward to go around the pot handle
-  MOVE_FORWARD(700);
+  // // Move forward to go around the pot handle
+  // MOVE_FORWARD(700);
 
-  // Turn 90 deg clockwise
-  TURN_CCW(900);
+  // // Turn 90 deg clockwise
+  // TURN_CCW(900);
 
-  // Move forward a short bit to get between handles\
-  //ball release
-  MOVE_FORWARD(1000);
-  latch.write(180);
-  MOVE_FORWARD(2000);
-  MOVE_BACKWARD(1000);
-
+  // // Move forward a short bit to get between handles\
+  // //ball release
+  // MOVE_FORWARD(1000);
+  // latch.write(180);
+  // MOVE_FORWARD(2000);
+  // MOVE_BACKWARD(1000);
+  while (1);
  }
 
