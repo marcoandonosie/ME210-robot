@@ -27,6 +27,7 @@
 #define STEP_PIN_L 11
 
 #define DEGREES_90 700
+#define DEGREES_90_SPEED_3000 DEGREES_90 + 55
 
 Servo ignition;
 Servo latch;
@@ -254,7 +255,7 @@ void setup() {
   void loop() {
   // Start game (start buzzer)
 
-  // Orient
+  // // Orient
   // while (1) {
   //   // Take reading.
   //   float dist0 = distanceReadMedian(0);
@@ -274,8 +275,6 @@ void setup() {
   //   // Turn a little
   //   TURN_CW(200);
   // }
-
- 
 
   // // Turn to face north
   // TURN_CW(DEGREES_90);
@@ -309,52 +308,61 @@ void setup() {
   // // Serial.println("Stage 4");
   // TURN_CCW(DEGREES_90+80);
 
-  // MORE_FORWARD(1000);
+  // MOVE_FORWARD(1000);
 
-  endRunSequence();
+  // endRunSequence();
 
-  // TODO: change numPantryVisits to a nonzero number.
-  for (int i = 0; i < numPantryVisits; ++i) {
-    // Move out of the pot.
-    MOVE_BACKWARD(1000);
+  // // TODO: change numPantryVisits to a nonzero number.
+  // for (int i = 0; i < numPantryVisits; ++i) {
+  //   // Move out of the pot.
+  //   MOVE_BACKWARD(1000);
 
-    // Realign with the west wall.
-    TURN_CW(DEGREES_90);
-    MOVE_BACKWARD(500);
+  //   // Realign with the west wall.
+  //   TURN_CW(DEGREES_90);
+  //   MOVE_BACKWARD(500);
 
-    // Move to the east wall.
-    MOVE_FORWARD(6000);
+  //   // Move to the east wall.
+  //   MOVE_FORWARD(6000);
 
-    // Turn to face north.
-    TURN_CCW(DEGREES_90);
+  //   // Turn to face north.
+  //   TURN_CCW(DEGREES_90);
 
-    // Move backward into the pantry.
-    MOVE_BACKWARD(3000);
+  //   // Move backward into the pantry.
+  //   MOVE_BACKWARD(3000);
 
-    // Move forward to the north wall.
-    MOVE_FORWARD(3000);
+  //   // Move forward to the north wall.
+  //   MOVE_FORWARD(3000);
 
-    // Move to the pot and drop the balls in again.
-    endRunSequence();
-  }
+  //   // Move to the pot and drop the balls in again.
+  //   endRunSequence();
+  // }
 
+  // START THE END OF THE GAME
+  stepperMaxSpeed = 3000;
   // Move back out of the pot.
   MOVE_BACKWARD(1000);
 
   DELAY(500); // to ensure stop before turning. possibly can remove.
   // Hit the ignition.
-  stepperMaxSpeed = 4500; // This is here to recreate the ignition code from earlier here.
+  stepperMaxSpeed = 3000; // This is here to recreate the ignition code from earlier here.
 
   // Now turn left, and turn OFF ignition
-  TURN_CCW(DEGREES_90+80);
+  TURN_CW(DEGREES_90_SPEED_3000); // NOTE: From here on out, CW = CCW and CCW = CW. :()
+  MOVE_FORWARD(500);
+
+  DELAY(500);
+
+  // Re-enter the pot
+  MOVE_BACKWARD(500);
+  TURN_CCW(DEGREES_90_SPEED_3000);
   MOVE_FORWARD(500);
 
   // Push to the customer window.
-  TURN_CW(DEGREES_90 + 80);
-  MOVE_FORWARD(6000);
+  TURN_CCW(DEGREES_90_SPEED_3000);
+  MOVE_FORWARD(8000);
 
   // Celebrate.
-  TURN_CW(DEGREES_90 << 2); // do a 360 degree rotation.
+  TURN_CW(DEGREES_90_SPEED_3000 << 2); // do a 360 degree rotation.
 
   // TODO: Turn off buzzer. Requires a digital pin.
   // Could connect the buzzer to the same pin used for 
@@ -362,4 +370,8 @@ void setup() {
   while (1);
  }
 
-
+void loop2() {
+  stepperMaxSpeed = 3000;
+  delay(1000);
+  TURN_CW(DEGREES_90 + 55);
+}
