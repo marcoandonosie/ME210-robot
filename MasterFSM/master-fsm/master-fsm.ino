@@ -1,3 +1,4 @@
+
 #include <TMCStepper.h>
 #include <AccelStepper.h>
 #include <SoftwareSerial.h>
@@ -14,17 +15,17 @@
 // Define UART communication pins
 #define RX_PIN_R 0 // TMC2209 TX (PDN)RIGHT MOTOR
 #define TX_PIN_R 1 // TMC2209 RX (PDN)
-#define RX_PIN_L 7 // TMC2209 TX (PDN)LEFT MOTOR
-#define TX_PIN_L 8 // TMC2209 RX (PDN)
+
 
 // Define Stepper Motor Driver Pins
 #define STEP_PIN_R 4
 #define DIR_PIN_R 3
 
-#define STEP_PIN_L 11
 #define DIR_PIN_L 6
+#define RX_PIN_L 7 // TMC2209 TX (PDN)LEFT MOTOR
+#define TX_PIN_L 8 // TMC2209 RX (PDN)
+#define STEP_PIN_L 11
 
-// TODO: figure out how many ms corresponds to a 90 deg turn
 #define DEGREES_90 700
 
 Servo ignition;
@@ -38,7 +39,6 @@ while (millis() - startTime < (x)) {\
   stepper_L.runSpeed();\
   stepper_R.runSpeed();\
 }\
-delay(500);
 
 #define MOVE_BACKWARD(x) \
 startTime = millis();\
@@ -48,7 +48,6 @@ while (millis() - startTime < (x)) {\
  stepper_L.runSpeed();\
  stepper_R.runSpeed();\
 }\
-delay(500);
 
 
 #define TURN_CW(x) \
@@ -69,6 +68,10 @@ while (millis() - startTime < (x)) {\
   stepper_R.runSpeed();\
 }\
 
+#define DELAY(x) \
+startTime = millis();\
+while (millis() - startTime < (x));
+
 // *****************************
 
 #define DRIVER_ADDRESS 0b00 // Default TMC2209 address
@@ -87,8 +90,10 @@ TMC2209Stepper driver_R(&SERIAL_PORT_RIGHT, RSENSE, DRIVER_ADDRESS);
 // Stepper Motor (Step/Dir Control)
 AccelStepper stepper_R(AccelStepper::DRIVER, STEP_PIN_R, DIR_PIN_R);
 AccelStepper stepper_L(AccelStepper::DRIVER, STEP_PIN_L, DIR_PIN_L);
+
 float stepperMaxSpeed = 4500;
 const float stepperTurnSpeed = 2000;
+const int numPantryVisits = 0; // TODO: Increase this to the most visits that can happen in 2min 10sec
 
 // *****************************
 unsigned long startTime = 0;
@@ -108,9 +113,51 @@ float distanceRead(int sensorNum = 0) {
   return (avg*.0343)/2;  
 }
 
+void endRunSequence() {
+  // START end-run sequence
+  // Move forward, aligning with the north wall.
+  stepperMaxSpeed = 3000;
+  MOVE_FORWARD(900);
+
+  DELAY(300);
+  // Turn 90 deg counterclockwise
+  TURN_CW(900);
+
+  // Move forward, pushing the pot
+  MOVE_FORWARD(6000);
+
+  stepperMaxSpeed = 2000;
+  DELAY(300);
+
+  MOVE_BACKWARD(800);
+
+  // Turn 90 deg counterclockwise
+  TURN_CW(600);
+
+  // Move forward to go around the pot handle
+  MOVE_FORWARD(2000);
+  DELAY(500);
+  TURN_CCW(1000);
+  DELAY(500);
+
+  // Move forward a short bit to get between handles
+  MOVE_FORWARD(2000);
+
+  // ball release
+  latch.write(90);
+
+  // Wait for balls to drop.
+  DELAY(1000);
+
+  // END end-run sequence
+  stepperMaxSpeed = 3000;
+  // Bookending with setting stepperMaxSpeed
+  // to ensure speed appears unchanged to code outside this function.
+}
+
 void setup() {
   // put your setup code here, to run once:
-  
+
   // setup pins
 
   // setup ultrasonic interrupts
@@ -142,9 +189,7 @@ void setup() {
 
   // Configure Stepper Motor
   stepper_L.setMaxSpeed(10000); //do not change this
-  // stepper_L.setSpeed(-4500); //fastest possible speed
   stepper_R.setMaxSpeed(10000); //do not change this
-  // stepper_R.setSpeed(4500); //fastest possible speed
 
   ignition.attach(9);
   latch.attach(10);
@@ -160,101 +205,146 @@ void setup() {
 
   Serial.begin(9600);
   Serial.println("TMC2209 Initialized. Motor should start moving...");
-}
+  }
 
-void loop2() {
-  MOVE_FORWARD(1000);
-}
-
-void loop() {
-  // put your main code here, to run repeatedly:
-
+  void loop() {
   // Start game (start buzzer)
 
   // Orient
-  {
-    Serial.println("Orientation start.");
-    while (1) {
-      Serial.println("Reading...");
-      // Take reading.
-      float dist0 = distanceRead(0);
-      delay(50); // Delay to ensure no cross-contamination between the ultrasonic sensors.
-      float dist1 = distanceRead(1);
-      Serial.print("Dist0: ");
-      Serial.print(dist0);
-      Serial.print(", Dist1: ");
-      Serial.println(dist1);
-      float diff = dist1 - dist0;
-      float delta = (diff < 0) ? -1*diff : diff; // delta = abs(diff)
-      bool isFacingNorth = ((delta < 5) && (dist0 > 50));
-      Serial.print("isFacingNorth: ");
-      Serial.println(isFacingNorth);
+  while (1) {
+    // Take reading.
+    float dist0 = distanceRead(0);
+    delay(50); // Delay to ensure no cross-contamination between the ultrasonic sensors.
+    float dist1 = distanceRead(1);
+    float diff = dist1 - dist0;
+    float delta = (diff < 0) ? -1*diff : diff; // delta = abs(diff)
+    bool isFacingNorth = ((delta < 5) && (dist0 > 50));
 
 
-      if (isFacingNorth) break;
+    if (isFacingNorth) break;
 
-      // Turn a little
-      TURN_CW(200);
-    }
+    // Turn a little
+    TURN_CW(200);
   }
 
   // Turn to face north
   TURN_CW(DEGREES_90);
-  delay(500);
-  stepperMaxSpeed = 4000;
-  MOVE_BACKWARD(500);
+
+  // Align with south wall.
+  stepperMaxSpeed = 2000;
+  MOVE_BACKWARD(800);
   stepperMaxSpeed = 4500;
 
   Serial.println("Stage 1");
   //igition servo
   ignition.write(0);
-  delay(200);
-  MOVE_FORWARD(1000);
-
+  MOVE_FORWARD(450);
   // Serial.println("Stage 2");
-  TURN_CW(DEGREES_90);
+  TURN_CW(DEGREES_90+80);
 
+  //DELAY(300);
   //hit ignition
   stepperMaxSpeed = 3000;
-  MOVE_FORWARD(300);
-  stepperMaxSpeed = 4500;
 
-  // // Move forward
+  MOVE_FORWARD(1000);
+  //stepperMaxSpeed = 4500;
+
+  DELAY(1000);
+  // Move forward
   // Serial.println("Stage 3");
-  // MOVE_BACKWARD(4000);
 
-  // // Turn 90 deg counterclockwise
+  // Move across from the west wall to the east wall
+  MOVE_BACKWARD(6000);
+  // Turn 90 deg counterclockwise
   // Serial.println("Stage 4");
-  // TURN_CCW(DEGREES_90);
+  TURN_CCW(DEGREES_90+80);
+  
+  // // START end-run sequence
+  // Move forward, aligning with the north wall.
+  // MOVE_FORWARD(900);
 
-  //   // Move forward
-  // MOVE_FORWARD(600);
+  // DELAY(300);
+  // // Turn 90 deg counterclockwise
+  // TURN_CW(900);
 
-  // MOVE_BACKWARD(200);
+  // // Move forward, pushing the pot
+  // MOVE_FORWARD(6000);
+
+  // stepperMaxSpeed = 2000;
+  // DELAY(300);
+
+  // MOVE_BACKWARD(800);
 
   // // Turn 90 deg counterclockwise
   // TURN_CW(600);
 
-  // // Move forward, pushing the pot
-  // MOVE_FORWARD(4000);
-
-  // MOVE_BACKWARD(300);
-
-  // // Turn 90 deg counterclockwise
-  // TURN_CW(DEGREES_90/2);
-
   // // Move forward to go around the pot handle
-  // MOVE_FORWARD(700);
-
-  // // Turn 90 deg clockwise
-  // TURN_CCW(900);
-
-  // // Move forward a short bit to get between handles\
-  // //ball release
-  // MOVE_FORWARD(1000);
-  // latch.write(180);
   // MOVE_FORWARD(2000);
-  // MOVE_BACKWARD(1000);
+  // DELAY(500);
+  // TURN_CCW(1000);
+  // DELAY(500);
+
+  // // Move forward a short bit to get between handles
+  // MOVE_FORWARD(2000);
+
+  // // ball release
+  // latch.write(90);
+
+  // // Wait for balls to drop.
+  // DELAY(1000);
+
+  // // END end-run sequence
+
+  endRunSequence();
+
+  // TODO: change numPantryVisits to a nonzero number.
+  for (int i = 0; i < numPantryVisits; ++i) {
+    // Move out of the pot.
+    MOVE_BACKWARD(1000);
+
+    // Realign with the west wall.
+    TURN_CW(DEGREES_90);
+    MOVE_BACKWARD(500);
+
+    // Move to the east wall.
+    MOVE_FORWARD(6000);
+
+    // Turn to face north.
+    TURN_CCW(DEGREES_90);
+
+    // Move backward into the pantry.
+    MOVE_BACKWARD(3000);
+
+    // Move forward to the north wall.
+    MOVE_FORWARD(3000);
+
+    // Move to the pot and drop the balls in again.
+    endRunSequence();
+  }
+
+  // Move back out of the pot.
+  MOVE_BACKWARD(1000);
+
+  DELAY(500); // to ensure stop before turning. possibly can remove.
+  // Hit the ignition.
+  stepperMaxSpeed = 4500; // This is here to recreate the ignition code from earlier here.
+  TURN_CW(DEGREES_90+80);
+
+  // Now go back into the pot handles.
+  TURN_CCW(DEGREES_90+80);
+  MOVE_FORWARD(1000);
+
+  // Push to the customer window.
+  TURN_CW(DEGREES_90 + 80);
+  MOVE_FORWARD(6000);
+
+  // Celebrate.
+  TURN_CW(DEGREES_90 << 2); // do a 360 degree rotation.
+
+  // TODO: Turn off buzzer. Requires a digital pin.
+  // Could connect the buzzer to the same pin used for 
+  // a sensor's TRIG pin, since readings are no longer important here.
   while (1);
  }
+
 
