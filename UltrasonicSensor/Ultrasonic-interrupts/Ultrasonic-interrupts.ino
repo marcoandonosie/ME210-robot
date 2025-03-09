@@ -1,7 +1,7 @@
-#define PIN_TRIG_1 8
-#define PIN_TRIG_2 9
-#define PIN_ECHO_1 2
-#define PIN_ECHO_2 3
+#define PIN_TRIG_1 13
+#define PIN_TRIG_2 2
+#define PIN_ECHO_1 12
+#define PIN_ECHO_2 5
 #define ARDUINO_COMMUNICATION_PIN_OUT 13
 #define ARDUINO_COMMUNICATION_PIN_IN 12
 
@@ -41,7 +41,7 @@ void setup() {
   while (!Serial);
 }
 
-void loop() {
+void loop3() {
   // Wait for a high on ARDUINO_COMMUNICATION_PIN_IN.
   while (!digitalRead(ARDUINO_COMMUNICATION_PIN_IN));
 
@@ -67,17 +67,55 @@ void loop() {
   }
 }
 
+void selectionSort(long arr[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        int minIndex = i;  // Assume the current index is the minimum
+
+        // Find the index of the smallest element in the remaining unsorted part
+        for (int j = i + 1; j < n; j++) {
+            if (arr[j] < arr[minIndex]) {
+                minIndex = j;  // Update minIndex if a smaller element is found
+            }
+        }
+
+        // Swap the found minimum element with the element at the current index
+        if (minIndex != i) {
+            long temp = arr[i];
+            arr[i] = arr[minIndex];
+            arr[minIndex] = temp;
+        }
+    }
+}
+
 // The following function is used for calibration.
 // Send a byte to the Arduino (just hit ENTER in the serial monitor)
 // and you will see readings from both sensors in the monitor
 // after a short delay.
+float distanceReadMedian(int sensorNum = 0) {
+  long avg = 0;
+  const int n_reads = 8;
+  uint8_t echoPin = sensorNum == 0 ? PIN_ECHO_1 : PIN_ECHO_2;
+  uint8_t trigPin = sensorNum == 0 ? PIN_TRIG_1 : PIN_TRIG_2;\
+  long reads[8] = {0,0,0,0,0,0,0,0};
+  for (int i = 0; i < n_reads; ++i) {
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+    reads[i] = pulseIn(echoPin, HIGH) >> 3;
+  }
 
-/*
-void loop2() {
+  selectionSort(reads, n_reads);
+  
+  return (reads[3] + reads[4]) * .0343 / 2;
+}
+
+void loop() {
   if (Serial.read() != -1) {
-    float dist0 = distanceRead(0);
+    float dist0 = distanceReadMedian(0);
     delay(100);
-    float dist1 = distanceRead(1);
+    float dist1 = distanceReadMedian(1);
     
     Serial.print("Sensor 0: ");
     Serial.print(dist0);
@@ -88,4 +126,3 @@ void loop2() {
   }
 }
 
-*/

@@ -113,11 +113,53 @@ float distanceRead(int sensorNum = 0) {
   return (avg*.0343)/2;  
 }
 
+void selectionSort(long arr[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        int minIndex = i;  // Assume the current index is the minimum
+
+        // Find the index of the smallest element in the remaining unsorted part
+        for (int j = i + 1; j < n; j++) {
+            if (arr[j] < arr[minIndex]) {
+                minIndex = j;  // Update minIndex if a smaller element is found
+            }
+        }
+
+        // Swap the found minimum element with the element at the current index
+        if (minIndex != i) {
+            long temp = arr[i];
+            arr[i] = arr[minIndex];
+            arr[minIndex] = temp;
+        }
+    }
+}
+
+float distanceReadMedian(int sensorNum = 0) {
+  long avg = 0;
+  const int n_reads = 8;
+  uint8_t echoPin = sensorNum == 0 ? PIN_ECHO_1 : PIN_ECHO_2;
+  uint8_t trigPin = sensorNum == 0 ? PIN_TRIG_1 : PIN_TRIG_2;\
+  long reads[8] = {0,0,0,0,0,0,0,0};
+  for (int i = 0; i < n_reads; ++i) {
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+    reads[i] = pulseIn(echoPin, HIGH);
+  }
+
+  selectionSort(reads, n_reads);
+  long median = (reads[3]+reads[4]) >> 1; // divided by 2
+  return median * .0343 / 2;
+}
+
+// All instructions from aligning with north wall,
+// pushing the pot, to dropping a ball.
 void endRunSequence() {
+  Serial.println("endRunSequence beginning");
   // START end-run sequence
   // Move forward, aligning with the north wall.
   stepperMaxSpeed = 3000;
-  MOVE_FORWARD(900);
 
   DELAY(300);
   // Turn 90 deg counterclockwise
@@ -147,7 +189,9 @@ void endRunSequence() {
   latch.write(90);
 
   // Wait for balls to drop.
-  DELAY(1000);
+  DELAY(2000);
+
+  latch.write(0);
 
   // END end-run sequence
   stepperMaxSpeed = 3000;
@@ -211,89 +255,61 @@ void setup() {
   // Start game (start buzzer)
 
   // Orient
-  while (1) {
-    // Take reading.
-    float dist0 = distanceRead(0);
-    delay(50); // Delay to ensure no cross-contamination between the ultrasonic sensors.
-    float dist1 = distanceRead(1);
-    float diff = dist1 - dist0;
-    float delta = (diff < 0) ? -1*diff : diff; // delta = abs(diff)
-    bool isFacingNorth = ((delta < 5) && (dist0 > 50));
+  // while (1) {
+  //   // Take reading.
+  //   float dist0 = distanceReadMedian(0);
+  //   delay(50); // Delay to ensure no cross-contamination between the ultrasonic sensors.
+  //   float dist1 = distanceReadMedian(1);
+  //   float diff = dist1 - dist0;
+  //   float delta = (diff < 0) ? -1*diff : diff; // delta = abs(diff)
+  //   Serial.print("Delta ");
+  //   Serial.print(delta);
+  //   Serial.print(", Dist ");
+  //   Serial.println(dist0);
+  //   bool isFacingNorth = ((delta < 5) && (dist0 > 50));
 
 
-    if (isFacingNorth) break;
+  //   if (isFacingNorth) break;
 
-    // Turn a little
-    TURN_CW(200);
-  }
+  //   // Turn a little
+  //   TURN_CW(200);
+  // }
 
-  // Turn to face north
-  TURN_CW(DEGREES_90);
+ 
 
-  // Align with south wall.
-  stepperMaxSpeed = 2000;
-  MOVE_BACKWARD(800);
-  stepperMaxSpeed = 4500;
+  // // Turn to face north
+  // TURN_CW(DEGREES_90);
 
-  Serial.println("Stage 1");
-  //igition servo
-  ignition.write(0);
-  MOVE_FORWARD(450);
-  // Serial.println("Stage 2");
-  TURN_CW(DEGREES_90+80);
-
-  //DELAY(300);
-  //hit ignition
-  stepperMaxSpeed = 3000;
-
-  MOVE_FORWARD(1000);
-  //stepperMaxSpeed = 4500;
-
-  DELAY(1000);
-  // Move forward
-  // Serial.println("Stage 3");
-
-  // Move across from the west wall to the east wall
-  MOVE_BACKWARD(6000);
-  // Turn 90 deg counterclockwise
-  // Serial.println("Stage 4");
-  TURN_CCW(DEGREES_90+80);
-  
-  // // START end-run sequence
-  // Move forward, aligning with the north wall.
-  // MOVE_FORWARD(900);
-
-  // DELAY(300);
-  // // Turn 90 deg counterclockwise
-  // TURN_CW(900);
-
-  // // Move forward, pushing the pot
-  // MOVE_FORWARD(6000);
-
+  // // Align with south wall.
   // stepperMaxSpeed = 2000;
-  // DELAY(300);
-
   // MOVE_BACKWARD(800);
+  // stepperMaxSpeed = 4500;
 
-  // // Turn 90 deg counterclockwise
-  // TURN_CW(600);
+  // Serial.println("Stage 1");
+  // //igition servo
+  // ignition.write(0);
+  // MOVE_FORWARD(450);
+  // // Serial.println("Stage 2");
+  // TURN_CW(DEGREES_90+80);
 
-  // // Move forward to go around the pot handle
-  // MOVE_FORWARD(2000);
-  // DELAY(500);
-  // TURN_CCW(1000);
-  // DELAY(500);
+  // //DELAY(300);
+  // //hit ignition
+  // stepperMaxSpeed = 3000;
 
-  // // Move forward a short bit to get between handles
-  // MOVE_FORWARD(2000);
+  // MOVE_FORWARD(1000);
+  // //stepperMaxSpeed = 4500;
 
-  // // ball release
-  // latch.write(90);
-
-  // // Wait for balls to drop.
   // DELAY(1000);
+  // // Move forward
+  // // Serial.println("Stage 3");
 
-  // // END end-run sequence
+  // // Move across from the west wall to the east wall
+  // MOVE_BACKWARD(6000);
+  // // Turn 90 deg counterclockwise
+  // // Serial.println("Stage 4");
+  // TURN_CCW(DEGREES_90+80);
+
+  // MORE_FORWARD(1000);
 
   endRunSequence();
 
@@ -328,11 +344,10 @@ void setup() {
   DELAY(500); // to ensure stop before turning. possibly can remove.
   // Hit the ignition.
   stepperMaxSpeed = 4500; // This is here to recreate the ignition code from earlier here.
-  TURN_CW(DEGREES_90+80);
 
-  // Now go back into the pot handles.
+  // Now turn left, and turn OFF ignition
   TURN_CCW(DEGREES_90+80);
-  MOVE_FORWARD(1000);
+  MOVE_FORWARD(500);
 
   // Push to the customer window.
   TURN_CW(DEGREES_90 + 80);
